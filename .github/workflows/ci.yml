@@ -147,6 +147,20 @@ jobs:
             type=raw,value=${{ env.LAB_IMAGE_TAG }}
             type=raw,value=latest
 
+      - name: Validate GitHub OAuth client ID secret
+        env:
+          GITHUB_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GITHUB_CLIENT_ID }}
+        run: |
+          if [[ -z "${GITHUB_CLIENT_ID}" ]]; then
+            echo "NEXT_PUBLIC_GITHUB_CLIENT_ID is not set in repository secrets." >&2
+            exit 1
+          fi
+          if [[ "${GITHUB_CLIENT_ID}" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "NEXT_PUBLIC_GITHUB_CLIENT_ID looks like a UUID (Bitwarden secret ID?), not a GitHub OAuth Client ID." >&2
+            echo "Use the Client ID from GitHub Developer settings -> OAuth Apps." >&2
+            exit 1
+          fi
+
       - name: Build and push web image
         uses: docker/build-push-action@v6
         with:

@@ -179,12 +179,26 @@ Optional rate-limit overrides are documented in the root README.
 
 ## GitHub OAuth callback
 
-Register the callback URL for your staging web origin, for example:
+Register the callback URL for your web origin:
 
-- Fly: `https://agentnet-web-staging.fly.dev/auth/callback`
-- Railway: `https://<web-service>.up.railway.app/auth/callback`
+| Environment | Callback URL |
+|-------------|--------------|
+| GitOps prod | `https://agentnet.diplyst.com/auth/callback` |
+| Fly staging | `https://agentnet-web-staging.fly.dev/auth/callback` |
+| Railway | `https://<web-service>.up.railway.app/auth/callback` |
 
-Exact path may change when M3 dashboard auth ships; update the OAuth app when routes are finalized.
+In [GitHub Developer settings → OAuth Apps](https://github.com/settings/developers), set:
+
+- **Homepage URL:** `https://agentnet.diplyst.com`
+- **Authorization callback URL:** `https://agentnet.diplyst.com/auth/callback`
+
+The Client ID must be the value shown on that OAuth App page (typically `Ov23…` or a 20-character string). Do not use Bitwarden secret IDs or UUIDs.
+
+| Secret | Where |
+|--------|--------|
+| Client ID (public) | GitHub Actions secret `NEXT_PUBLIC_GITHUB_CLIENT_ID` (web Docker build) |
+| Client ID | Bitwarden `AGENTNET_GITHUB_CLIENT_ID` → API `GITHUB_CLIENT_ID` |
+| Client secret | Bitwarden `AGENTNET_GITHUB_CLIENT_SECRET` → API `GITHUB_CLIENT_SECRET` (never `NEXT_PUBLIC_*`) |
 
 ## Troubleshooting
 
@@ -219,18 +233,29 @@ Helm charts live in this repo under `deploy/helm/{agentnet-api,agentnet-web,agen
    - optional gitops-lab tag bump
 4. Tag `v*` runs `.github/workflows/release.yml` (semver images + chart packages).
 
-### Web build arg in CI
+### Web build args in CI
 
-`NEXT_PUBLIC_API_URL` defaults to `https://agentnet-api.priv.diplyst.com` in the workflow. Change `.github/workflows/ci.yml` and `release.yml` if your ingress host differs.
+CI bakes these into the web image at build time:
 
-### Lab ingress (Tailscale)
+| Build arg | Prod value |
+|-----------|------------|
+| `NEXT_PUBLIC_API_URL` | `https://agentnet-api.diplyst.com` |
+| `NEXT_PUBLIC_GITHUB_CLIENT_ID` | GitHub OAuth App Client ID (Actions secret) |
+
+Add repository secret `NEXT_PUBLIC_GITHUB_CLIENT_ID` under **Settings → Secrets and variables → Actions**.
+
+The web pod also receives runtime `API_URL=http://agentnet-api.backend.svc.cluster.local:8000` for server-side auth proxying (in-cluster, no public round trip).
+
+### Prod ingress (public)
 
 | Service | Host |
 |---------|------|
-| Web | `agentnet.priv.diplyst.com` |
-| API | `agentnet-api.priv.diplyst.com` |
+| Web | `https://agentnet.diplyst.com` |
+| API | `https://agentnet-api.diplyst.com` |
 
-Postgres runs in-cluster (`agentnet-postgres` in `backend` namespace). Lab secrets are plain Kubernetes Secrets in gitops-lab; swap for ExternalSecrets before production.
+Both use Traefik + cert-manager (`letsencrypt-prod`). external-dns creates public DNS records under `diplyst.com`.
+
+Postgres stays in-cluster only. API and web secrets sync from Bitwarden via ExternalSecrets (`AGENTNET_*` keys).
 
 ### Manual rollout
 
