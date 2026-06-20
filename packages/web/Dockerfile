@@ -1,11 +1,11 @@
-FROM docker.io/library/node:22-alpine AS deps
+FROM --platform=$BUILDPLATFORM docker.io/library/node:22-alpine AS deps
 
 WORKDIR /app/packages/web
 
 COPY packages/web/package.json packages/web/package-lock.json* ./
 RUN npm ci
 
-FROM docker.io/library/node:22-alpine AS builder
+FROM --platform=$BUILDPLATFORM docker.io/library/node:22-alpine AS builder
 
 WORKDIR /app/packages/web
 
