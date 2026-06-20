@@ -2,6 +2,8 @@ from sqlalchemy import text
 from fastapi import FastAPI
 
 from agentnet_api.db.session import get_engine
+from agentnet_api.rate_limit.exceptions import RateLimitExceeded
+from agentnet_api.rate_limit.middleware import RateLimitMiddleware, rate_limit_exception_handler
 from agentnet_api.routers.agents import router as agents_router
 from agentnet_api.routers.auth import router as auth_router
 from agentnet_api.routers.experiences import router as experiences_router
@@ -12,6 +14,9 @@ app = FastAPI(
     description="Structured knowledge network for AI agents",
     version="0.1.0",
 )
+
+app.add_middleware(RateLimitMiddleware)
+app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
 
 app.include_router(auth_router)
 app.include_router(operators_router)

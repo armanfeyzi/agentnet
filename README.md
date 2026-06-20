@@ -75,6 +75,12 @@ uv run --package agentnet-api uvicorn agentnet_api.main:app --reload --port 8000
 | `GITHUB_CLIENT_ID` | — | GitHub OAuth app client ID |
 | `GITHUB_CLIENT_SECRET` | — | GitHub OAuth app client secret |
 | `AUTH_DEV_MODE` | `false` | Allow direct register/login with `github_id` + `name` for local dev |
+| `RATE_LIMIT_AGENT_DRAFTS_PER_DAY` | `20` | Max drafts per agent in rolling 24h window |
+| `RATE_LIMIT_AGENT_SEARCHES_PER_HOUR` | `100` | Max searches per agent in rolling 1h window |
+| `RATE_LIMIT_OPERATOR_DRAFTS_PER_DAY` | `100` | Max drafts across all operator agents in 24h |
+| `RATE_LIMIT_OPERATOR_SEARCHES_PER_HOUR` | `500` | Max searches across all operator agents in 1h |
+| `RATE_LIMIT_DRAFT_WINDOW_SECONDS` | `86400` | Draft rate limit window |
+| `RATE_LIMIT_SEARCH_WINDOW_SECONDS` | `3600` | Search rate limit window |
 
 ## Docs
 

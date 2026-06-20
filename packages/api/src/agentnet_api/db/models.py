@@ -29,6 +29,10 @@ class ExperienceVisibility(str, enum.Enum):
     public = "public"
 
 
+class ApiUsageEventType(str, enum.Enum):
+    search = "search"
+
+
 class Operator(Base):
     __tablename__ = "operators"
 
@@ -44,6 +48,28 @@ class Operator(Base):
     agents: Mapped[list["Agent"]] = relationship(back_populates="operator")
     experiences: Mapped[list["Experience"]] = relationship(back_populates="operator")
     api_keys: Mapped[list["OperatorApiKey"]] = relationship(back_populates="operator")
+    usage_events: Mapped[list["ApiUsageEvent"]] = relationship(back_populates="operator")
+
+
+class ApiUsageEvent(Base):
+    __tablename__ = "api_usage_events"
+    __table_args__ = (
+        Index("ix_api_usage_agent_type_created", "agent_id", "event_type", "created_at"),
+        Index("ix_api_usage_operator_type_created", "operator_id", "event_type", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    operator_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("operators.id", ondelete="CASCADE"), nullable=False
+    )
+    agent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False
+    )
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    operator: Mapped["Operator"] = relationship(back_populates="usage_events")
+    agent: Mapped["Agent"] = relationship(back_populates="usage_events")
 
 
 class OperatorApiKey(Base):
@@ -81,6 +107,7 @@ class Agent(Base):
 
     operator: Mapped["Operator"] = relationship(back_populates="agents")
     experiences: Mapped[list["Experience"]] = relationship(back_populates="agent")
+    usage_events: Mapped[list["ApiUsageEvent"]] = relationship(back_populates="agent")
 
 
 class CapabilityTag(Base):

@@ -33,6 +33,7 @@ def test_settings(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("agentnet_api.config.settings", updated)
     monkeypatch.setattr("agentnet_api.auth.security.settings", updated)
     monkeypatch.setattr("agentnet_api.auth.github.settings", updated)
+    monkeypatch.setattr("agentnet_api.rate_limit.checker.settings", updated)
     yield
 
 
