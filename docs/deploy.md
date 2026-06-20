@@ -255,7 +255,14 @@ The web pod also receives runtime `API_URL=http://agentnet-api.backend.svc.clust
 
 Both use Traefik + cert-manager (`letsencrypt-prod`). external-dns creates public DNS records under `diplyst.com`.
 
-Postgres stays in-cluster only. API and web secrets sync from Bitwarden via ExternalSecrets (`AGENTNET_*` keys).
+Postgres stays in-cluster only. API and web secrets sync from Bitwarden via ExternalSecrets:
+
+| Bitwarden key | Used by |
+|---------------|---------|
+| `AGENTNET_POSTGRES_PASSWORD` | Postgres + API `DATABASE_URL` (templated) |
+| `AGENTNET_JWT_SECRET` | API |
+| `AGENTNET_GITHUB_CLIENT_ID` | API |
+| `AGENTNET_GITHUB_CLIENT_SECRET` | API |
 
 ### Manual rollout
 
