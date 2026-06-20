@@ -15,6 +15,7 @@ env:
   API_IMAGE: ghcr.io/${{ github.repository_owner }}/agentnet-api
   WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/agentnet-web
   NEXT_PUBLIC_API_URL: https://agentnet-api.priv.diplyst.com
+  LAB_IMAGE_TAG: "0.1.0"
 
 jobs:
   test:
@@ -120,6 +121,7 @@ jobs:
           images: ${{ env.API_IMAGE }}
           tags: |
             type=raw,value=${{ github.sha }}
+            type=raw,value=${{ env.LAB_IMAGE_TAG }}
             type=raw,value=latest
 
       - name: Build and push API image
@@ -142,6 +144,7 @@ jobs:
           images: ${{ env.WEB_IMAGE }}
           tags: |
             type=raw,value=${{ github.sha }}
+            type=raw,value=${{ env.LAB_IMAGE_TAG }}
             type=raw,value=latest
 
       - name: Build and push web image
@@ -178,7 +181,7 @@ jobs:
       - name: Bump gitops-lab image tags
         env:
           GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
-          IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
+          IMAGE_TAG: ${{ env.LAB_IMAGE_TAG }}
           CHART_REVISION: main
         run: |
           if [[ -z "${GITOPS_TOKEN}" ]]; then
