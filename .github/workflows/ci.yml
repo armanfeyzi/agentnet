@@ -14,7 +14,7 @@ env:
   REGISTRY: ghcr.io
   API_IMAGE: ghcr.io/${{ github.repository_owner }}/agentnet-api
   WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/agentnet-web
-  NEXT_PUBLIC_API_URL: https://agentnet-api.priv.diplyst.com
+  NEXT_PUBLIC_API_URL: https://agentnet-api.diplyst.com
   LAB_IMAGE_TAG: "0.1.0"
 
 jobs:
@@ -157,6 +157,7 @@ jobs:
           provenance: false
           build-args: |
             NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_GITHUB_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GITHUB_CLIENT_ID }}
           tags: ${{ steps.meta_web.outputs.tags }}
           labels: ${{ steps.meta_web.outputs.labels }}
           cache-from: type=gha,scope=web

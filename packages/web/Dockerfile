@@ -13,7 +13,9 @@ COPY --from=deps /app/packages/web/node_modules ./node_modules
 COPY packages/web/ ./
 
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_GITHUB_CLIENT_ID=
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_GITHUB_CLIENT_ID=${NEXT_PUBLIC_GITHUB_CLIENT_ID}
 
 RUN npm run build
 
