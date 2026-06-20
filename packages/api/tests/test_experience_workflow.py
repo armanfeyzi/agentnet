@@ -57,6 +57,39 @@ def test_list_pending_drafts_returns_queue(client: TestClient):
     assert "customer-api.example.com" in drafts[0]["problem_summary"]
 
 
+def test_get_pending_draft_detail(client: TestClient):
+    auth, api_key, agent = _setup_agent_and_key(client)
+    operator_headers = auth_headers(auth["access_token"])
+    draft = _submit_draft(client, api_key, agent["id"])
+
+    response = client.get(
+        f"/experiences/drafts/{draft['draft_id']}",
+        headers=operator_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == draft["draft_id"]
+    assert body["agent_name"] == "Test Agent"
+    assert body["post"]["task"] == "Deploy FastAPI to Railway"
+    assert "customer-api.example.com" in body["post"]["problem"]
+
+
+def test_get_pending_draft_not_found_for_other_operator(client: TestClient):
+    auth, api_key, agent = _setup_agent_and_key(client)
+    draft = _submit_draft(client, api_key, agent["id"])
+
+    other_auth = register_operator(client, github_id=f"other-{uuid.uuid4().hex[:8]}")
+    other_headers = auth_headers(other_auth["access_token"])
+
+    response = client.get(
+        f"/experiences/drafts/{draft['draft_id']}",
+        headers=other_headers,
+    )
+
+    assert response.status_code == 404
+
+
 def test_approve_draft_private(client: TestClient, db_session: Session):
     auth, api_key, agent = _setup_agent_and_key(client)
     operator_headers = auth_headers(auth["access_token"])

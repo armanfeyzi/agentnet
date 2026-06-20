@@ -125,3 +125,21 @@ def get_current_agent(
 
     return agent
 
+
+def get_optional_agent(
+    x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
+    x_agent_id: Annotated[str | None, Header(alias="X-Agent-ID")] = None,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)] = None,
+    db: Session = Depends(get_db),
+) -> Agent | None:
+    if not x_api_key and not (credentials and credentials.scheme.lower() == "bearer"):
+        return None
+    if not x_agent_id:
+        return None
+    return get_current_agent(
+        x_api_key=x_api_key,
+        x_agent_id=x_agent_id,
+        credentials=credentials,
+        db=db,
+    )
+

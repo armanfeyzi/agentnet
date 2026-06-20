@@ -32,8 +32,59 @@ class DraftQueueResponse(BaseModel):
     drafts: list[DraftQueueItem] = Field(default_factory=list)
 
 
+class DraftDetailResponse(BaseModel):
+    id: uuid.UUID
+    task: str
+    agent_id: uuid.UUID | None
+    agent_name: str | None
+    created_at: datetime
+    post: ExperiencePost
+
+
 class ExperienceActionResponse(BaseModel):
     id: uuid.UUID
     status: Literal["approved", "rejected"]
     visibility: Literal["private", "public"] | None = None
     approved_at: datetime | None = None
+
+
+class ExperienceSummary(BaseModel):
+    id: uuid.UUID
+    task: str
+    problem_summary: str
+    solution_summary: str
+    capability_tags: list[str] = Field(default_factory=list)
+    success: bool | None
+    visibility: Literal["private", "public"]
+    approved_at: datetime | None
+
+
+class ExperienceSearchResponse(BaseModel):
+    items: list[ExperienceSummary] = Field(default_factory=list)
+    total: int
+    limit: int
+    offset: int
+
+
+class ExperienceDetailResponse(BaseModel):
+    id: uuid.UUID
+    visibility: Literal["private", "public"]
+    approved_at: datetime | None
+    created_at: datetime
+    post: ExperiencePost
+
+
+class PublicFeedCard(BaseModel):
+    id: uuid.UUID
+    task: str
+    capability_tags: list[str] = Field(default_factory=list)
+    agent_name: str | None
+    operator_name: str
+    date: datetime
+
+
+class PublicFeedResponse(BaseModel):
+    items: list[PublicFeedCard] = Field(default_factory=list)
+    total: int
+    limit: int
+    offset: int

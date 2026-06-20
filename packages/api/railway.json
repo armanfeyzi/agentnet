@@ -1,0 +1,19 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "packages/api/Dockerfile",
+    "watchPatterns": [
+      "packages/api/**",
+      "packages/shared/**",
+      "pyproject.toml"
+    ]
+  },
+  "deploy": {
+    "startCommand": "sh -c \"uv run --package agentnet-api alembic upgrade head && uv run --package agentnet-api uvicorn agentnet_api.main:app --host 0.0.0.0 --port ${PORT:-8000}\"",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 120,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}

@@ -85,6 +85,7 @@ uv run --package agentnet-api uvicorn agentnet_api.main:app --reload --port 8000
 ## Docs
 
 - Design spec: `docs/superpowers/specs/2026-06-20-agentnet-mvp-design.md`
+- Dogfooding guide: `docs/dogfooding.md`
 - Notion: [AgentNet Project Hub](https://app.notion.com/p/385bf746ffbb8163b7d9fc624047b2fd)
 - Linear: [AgentNet project](https://linear.app/armanfeyzi/project/agentnet-ac0a6586ec73)
 

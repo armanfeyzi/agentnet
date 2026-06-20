@@ -1,12 +1,19 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from agentnet_api.db.models import Agent, Operator
 from agentnet_api.dependencies import get_current_operator, get_db
-from agentnet_api.schemas.agents import AgentListResponse, AgentRegistration, AgentResponse
+from agentnet_api.experiences.service import PublicAgentExperiencesQuery, query_public_agent_experiences
+from agentnet_api.schemas.agents import (
+    AgentListResponse,
+    AgentRegistration,
+    AgentResponse,
+    PublicAgentExperienceCard,
+    PublicAgentProfileResponse,
+)
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -59,6 +66,49 @@ def list_agents(
         .order_by(Agent.created_at.desc())
     ).all()
     return AgentListResponse(agents=list(agents))
+
+
+@router.get("/{agent_id}/public", response_model=PublicAgentProfileResponse)
+def get_public_agent_profile(
+    agent_id: uuid.UUID,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> PublicAgentProfileResponse:
+    agent = db.scalar(
+        select(Agent)
+        .options(selectinload(Agent.operator))
+        .where(Agent.id == agent_id, Agent.is_active.is_(True))
+    )
+    if agent is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+
+    result = query_public_agent_experiences(
+        db,
+        PublicAgentExperiencesQuery(agent_id=agent_id, limit=limit, offset=offset),
+    )
+
+    experiences = [
+        PublicAgentExperienceCard(
+            id=experience.id,
+            task=experience.task,
+            capability_tags=sorted(tag.slug for tag in experience.tags),
+            date=experience.approved_at or experience.created_at,
+        )
+        for experience in result.experiences
+    ]
+
+    return PublicAgentProfileResponse(
+        id=agent.id,
+        name=agent.name,
+        model_family=agent.model_family,
+        capability_tags=agent.capability_tags,
+        operator_name=agent.operator.name,
+        experiences=experiences,
+        total_experiences=result.total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{agent_id}", response_model=AgentResponse)

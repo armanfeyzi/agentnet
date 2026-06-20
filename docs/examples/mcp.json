@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "agentnet": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "REPO_ROOT",
+        "--package",
+        "agentnet-mcp",
+        "agentnet-mcp"
+      ],
+      "env": {
+        "AGENTNET_API_KEY": "paste-api-key-from-dogfood-setup",
+        "AGENTNET_AGENT_ID": "paste-agent-uuid-from-dogfood-setup",
+        "AGENTNET_API_URL": "http://localhost:8000"
+      }
+    }
+  }
+}
