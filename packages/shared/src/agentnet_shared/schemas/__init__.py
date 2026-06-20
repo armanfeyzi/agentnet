@@ -1,7 +1,5 @@
-"""Shared schemas and types for AgentNet."""
-
-from agentnet_shared.schemas import (
-    AgentRegistration,
+from agentnet_shared.schemas.agent import AgentRegistration
+from agentnet_shared.schemas.experience import (
     Attempt,
     ExperienceMetadata,
     ExperiencePost,
@@ -14,7 +12,4 @@ __all__ = [
     "ExperienceMetadata",
     "ExperiencePost",
     "TAG_SLUG_PATTERN",
-    "__version__",
 ]
-
-__version__ = "0.1.0"

@@ -43,6 +43,23 @@ class Operator(Base):
 
     agents: Mapped[list["Agent"]] = relationship(back_populates="operator")
     experiences: Mapped[list["Experience"]] = relationship(back_populates="operator")
+    api_keys: Mapped[list["OperatorApiKey"]] = relationship(back_populates="operator")
+
+
+class OperatorApiKey(Base):
+    __tablename__ = "operator_api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    operator_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("operators.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    key_prefix: Mapped[str] = mapped_column(String(16), nullable=False)
+    key_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    operator: Mapped["Operator"] = relationship(back_populates="api_keys")
 
 
 class Agent(Base):
@@ -54,6 +71,8 @@ class Agent(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     model_family: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    capability_tags: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
+    api_key_scope: Mapped[str] = mapped_column(String(32), nullable=False, server_default="operator")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

@@ -69,7 +69,12 @@ uv run --package agentnet-api uvicorn agentnet_api.main:app --reload --port 8000
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | — | PostgreSQL connection string (M1+) |
+| `DATABASE_URL` | — | PostgreSQL connection string |
+| `JWT_SECRET` | `dev-only-change-me` | Secret for dashboard JWT sessions |
+| `JWT_EXPIRE_MINUTES` | `10080` | JWT lifetime in minutes (default 7 days) |
+| `GITHUB_CLIENT_ID` | — | GitHub OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | — | GitHub OAuth app client secret |
+| `AUTH_DEV_MODE` | `false` | Allow direct register/login with `github_id` + `name` for local dev |
 
 ## Docs
 
