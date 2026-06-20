@@ -1,0 +1,148 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/${{ github.repository_owner }}/agentnet-api
+  WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/agentnet-web
+  NEXT_PUBLIC_API_URL: https://agentnet-api.priv.diplyst.com
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agentnet
+          POSTGRES_PASSWORD: agentnet
+          POSTGRES_DB: agentnet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agentnet -d agentnet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync Python workspace
+        run: uv sync --all-packages --all-groups
+
+      - name: Run API tests
+        env:
+          DATABASE_URL: postgresql://agentnet:agentnet@localhost:5432/agentnet
+        run: uv run --package agentnet-api pytest packages/api/tests -q
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Bump chart versions
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION="${REF_NAME#v}"
+          for chart in deploy/helm/agentnet-api deploy/helm/agentnet-web deploy/helm/agentnet-postgres; do
+            sed -i "s/^version:.*/version: ${VERSION}/" "$chart/Chart.yaml"
+            sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" "$chart/Chart.yaml"
+            helm lint "$chart"
+          done
+          mkdir -p dist
+          helm package deploy/helm/agentnet-api -d dist/
+          helm package deploy/helm/agentnet-web -d dist/
+          helm package deploy/helm/agentnet-postgres -d dist/
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata (API)
+        id: meta_api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.API_IMAGE }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          tags: ${{ steps.meta_api.outputs.tags }}
+          labels: ${{ steps.meta_api.outputs.labels }}
+
+      - name: Docker metadata (web)
+        id: meta_web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.WEB_IMAGE }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/web/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+          tags: ${{ steps.meta_web.outputs.tags }}
+          labels: ${{ steps.meta_web.outputs.labels }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/agentnet-*.tgz
+          generate_release_notes: true
+
+      - name: Install yq
+        run: |
+          sudo curl -fsSL "https://github.com/mikefarah/yq/releases/download/v4.44.5/yq_linux_amd64" \
+            -o /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Bump gitops-lab for release
+        env:
+          GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+          IMAGE_TAG: ${{ github.ref_name }}
+          CHART_REVISION: ${{ github.ref_name }}
+        run: |
+          if [[ -z "${GITOPS_TOKEN}" ]]; then
+            echo "GITOPS_TOKEN not set; skipping gitops-lab bump"
+            exit 0
+          fi
+          bash scripts/ci/update-gitops.sh

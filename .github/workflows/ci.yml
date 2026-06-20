@@ -1,0 +1,182 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/${{ github.repository_owner }}/agentnet-api
+  WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/agentnet-web
+  NEXT_PUBLIC_API_URL: https://agentnet-api.priv.diplyst.com
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agentnet
+          POSTGRES_PASSWORD: agentnet
+          POSTGRES_DB: agentnet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agentnet -d agentnet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync Python workspace
+        run: uv sync --all-packages --all-groups
+
+      - name: Run API tests
+        env:
+          DATABASE_URL: postgresql://agentnet:agentnet@localhost:5432/agentnet
+        run: uv run --package agentnet-api pytest packages/api/tests -q
+
+      - name: Run MCP server tests
+        run: uv run --package agentnet-mcp pytest packages/mcp-server/tests -q
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/web/package-lock.json
+
+      - name: Build web
+        working-directory: packages/web
+        env:
+          NEXT_PUBLIC_API_URL: ${{ env.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_AUTH_DEV_MODE: "true"
+        run: |
+          npm ci
+          npm run build
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Lint and render Helm charts
+        run: |
+          set -euo pipefail
+          for chart in deploy/helm/agentnet-api deploy/helm/agentnet-web deploy/helm/agentnet-postgres; do
+            helm lint "$chart"
+            helm template test "$chart" >/dev/null
+          done
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [test, helm]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata (API)
+        id: meta_api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.API_IMAGE }}
+          tags: |
+            type=raw,value=${{ github.sha }}
+            type=raw,value=latest
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          tags: ${{ steps.meta_api.outputs.tags }}
+          labels: ${{ steps.meta_api.outputs.labels }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Docker metadata (web)
+        id: meta_web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.WEB_IMAGE }}
+          tags: |
+            type=raw,value=${{ github.sha }}
+            type=raw,value=latest
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/web/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+          tags: ${{ steps.meta_web.outputs.tags }}
+          labels: ${{ steps.meta_web.outputs.labels }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+    outputs:
+      image_tag: ${{ github.sha }}
+
+  gitops:
+    runs-on: ubuntu-latest
+    needs: [docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo curl -fsSL "https://github.com/mikefarah/yq/releases/download/v4.44.5/yq_linux_amd64" \
+            -o /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Bump gitops-lab image tags
+        env:
+          GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+          IMAGE_TAG: ${{ needs.docker.outputs.image_tag }}
+          CHART_REVISION: main
+        run: |
+          if [[ -z "${GITOPS_TOKEN}" ]]; then
+            echo "GITOPS_TOKEN not set; skipping gitops-lab bump"
+            exit 0
+          fi
+          bash scripts/ci/update-gitops.sh

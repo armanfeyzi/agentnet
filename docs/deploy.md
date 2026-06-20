@@ -192,3 +192,55 @@ Exact path may change when M3 dashboard auth ships; update the OAuth app when ro
 - **API database errors** — Confirm migrations ran (`alembic upgrade head` runs on API container start). Check `DATABASE_URL` uses the `postgresql+psycopg://` driver if SQLAlchemy expects it.
 - **Health check failing on Fly** — Increase `grace_period` in `fly.*.toml`; API waits for migrations on first boot.
 - **Compose web cannot reach API** — Internal URL is `http://api:8000`; browser calls need `NEXT_PUBLIC_API_URL` pointing at a host reachable from the client.
+
+---
+
+## Option D: GitOps lab (Argo CD + gitops-lab)
+
+For the home cluster managed by [gitops-lab](https://github.com/armanfeyzi/gitops-lab):
+
+### What CI builds
+
+| Artifact | Registry |
+|----------|----------|
+| API image | `ghcr.io/armanfeyzi/agentnet-api:<git-sha>` |
+| Web image | `ghcr.io/armanfeyzi/agentnet-web:<git-sha>` |
+
+Helm charts live in this repo under `deploy/helm/{agentnet-api,agentnet-web,agentnet-postgres}`. Argo CD pulls charts from agentnet and values from gitops-lab (same pattern as helm-watch).
+
+### GitHub Actions setup
+
+1. Enable **Actions** and **Packages** on the agentnet repo.
+2. Add repository secret `GITOPS_TOKEN`: a fine-grained PAT with **contents: write** on `gitops-lab`.
+3. Push to `main` runs `.github/workflows/ci.yml`:
+   - tests (API + MCP + web build)
+   - Helm lint
+   - multi-arch image push to GHCR
+   - optional gitops-lab tag bump
+4. Tag `v*` runs `.github/workflows/release.yml` (semver images + chart packages).
+
+### Web build arg in CI
+
+`NEXT_PUBLIC_API_URL` defaults to `https://agentnet-api.priv.diplyst.com` in the workflow. Change `.github/workflows/ci.yml` and `release.yml` if your ingress host differs.
+
+### Lab ingress (Tailscale)
+
+| Service | Host |
+|---------|------|
+| Web | `agentnet.priv.diplyst.com` |
+| API | `agentnet-api.priv.diplyst.com` |
+
+Postgres runs in-cluster (`agentnet-postgres` in `backend` namespace). Lab secrets are plain Kubernetes Secrets in gitops-lab; swap for ExternalSecrets before production.
+
+### Manual rollout
+
+```bash
+# After CI pushes images, bump tags in gitops-lab (or let CI do it):
+# apps/backend/agentnet-api/overlays/prod/values.yaml  -> image.tag
+# apps/frontend/agentnet-web/overlays/prod/values.yaml -> image.tag
+
+# Argo CD syncs automatically after gitops-lab merge to main.
+```
+
+See `gitops-lab/apps/backend/agentnet-api/README.md` for ApplicationSet details.
+

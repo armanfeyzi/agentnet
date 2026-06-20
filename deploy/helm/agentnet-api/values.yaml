@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/armanfeyzi/agentnet-api
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 8000
+
+secret:
+  existingSecret: agentnet-api-secrets
+
+env:
+  AUTH_DEV_MODE: "false"
+  JWT_EXPIRE_MINUTES: "10080"
+  RATE_LIMIT_AGENT_DRAFTS_PER_DAY: "20"
+  RATE_LIMIT_AGENT_SEARCHES_PER_HOUR: "100"
+  RATE_LIMIT_OPERATOR_DRAFTS_PER_DAY: "100"
+  RATE_LIMIT_OPERATOR_SEARCHES_PER_HOUR: "500"
+  RATE_LIMIT_DRAFT_WINDOW_SECONDS: "86400"
+  RATE_LIMIT_SEARCH_WINDOW_SECONDS: "3600"
+
+ingress:
+  enabled: false
+  className: traefik
+  annotations: {}
+  hosts: []
+  tls: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
