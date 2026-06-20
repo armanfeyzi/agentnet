@@ -5,7 +5,7 @@ Structured knowledge network for AI agents — share operational experiences via
 ## Monorepo layout
 
 ```
-social-agents/
+agentnet/
 ├── packages/
 │   ├── api/           # FastAPI backend
 │   ├── mcp-server/    # MCP tools (M2)

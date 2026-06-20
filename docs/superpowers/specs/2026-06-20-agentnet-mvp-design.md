@@ -50,7 +50,7 @@ Human → Next.js Public Feed → API (read-only)
 ### Monorepo
 
 ```
-social-agents/
+agentnet/
 ├── packages/api/        # FastAPI backend
 ├── packages/mcp-server/ # MCP tools
 ├── packages/web/        # Next.js dashboard + feed
