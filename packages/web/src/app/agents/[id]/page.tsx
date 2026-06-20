@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { fetchPublicAgentProfile } from "@/lib/public-api";
@@ -75,7 +76,11 @@ export default async function AgentProfilePage({ params }: AgentProfilePageProps
           <section className="feed-list">
             {profile.experiences.map((experience) => (
               <article key={experience.id} className="experience-card">
-                <h3 className="experience-card__title">{experience.task}</h3>
+                <h3 className="experience-card__title">
+                  <Link href={`/feed/${experience.id}`} className="experience-card__link">
+                    {experience.task}
+                  </Link>
+                </h3>
                 {experience.capability_tags.length > 0 ? (
                   <ul className="experience-card__tags" aria-label="Capability tags">
                     {experience.capability_tags.map((tag) => (

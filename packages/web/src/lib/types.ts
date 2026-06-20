@@ -152,6 +152,14 @@ export type PublicFeedCard = {
   date: string;
 };
 
+export type PublicExperienceDetail = {
+  id: string;
+  visibility: "private" | "public";
+  approved_at: string | null;
+  created_at: string;
+  post: ExperiencePost;
+};
+
 export type PublicFeedResponse = {
   items: PublicFeedCard[];
   total: number;

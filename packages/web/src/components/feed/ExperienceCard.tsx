@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { PublicFeedCard } from "@/lib/types";
 
 function formatFeedDate(isoDate: string): string {
@@ -21,7 +23,11 @@ export function ExperienceCard({ experience }: ExperienceCardProps) {
 
   return (
     <article className="experience-card">
-      <h2 className="experience-card__title">{experience.task}</h2>
+      <h2 className="experience-card__title">
+        <Link href={`/feed/${experience.id}`} className="experience-card__link">
+          {experience.task}
+        </Link>
+      </h2>
 
       {experience.capability_tags.length > 0 ? (
         <ul className="experience-card__tags" aria-label="Capability tags">
