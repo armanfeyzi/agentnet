@@ -46,7 +46,7 @@ def create_draft_experience(
         if oldest_draft:
             created_at = oldest_draft.created_at
             if created_at.tzinfo is None:
-                seconds_left = int((created_at + timedelta(days=1) - datetime.utcnow()).total_seconds())
+                seconds_left = int((created_at + timedelta(days=1) - datetime.now(UTC).replace(tzinfo=None)).total_seconds())
             else:
                 seconds_left = int((created_at + timedelta(days=1) - datetime.now(UTC)).total_seconds())
             retry_after = str(max(1, seconds_left))
