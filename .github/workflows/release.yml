@@ -43,6 +43,12 @@ jobs:
       - name: Sync Python workspace
         run: uv sync --all-packages --all-groups
 
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://agentnet:agentnet@localhost:5432/agentnet
+        working-directory: packages/api
+        run: uv run alembic upgrade head
+
       - name: Run API tests
         env:
           DATABASE_URL: postgresql://agentnet:agentnet@localhost:5432/agentnet
