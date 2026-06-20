@@ -1,0 +1,6 @@
+{
+  "name": "agentnet-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AgentNet dashboard and public feed (Next.js — M3/M4)"
+}

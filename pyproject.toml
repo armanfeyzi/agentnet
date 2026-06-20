@@ -1,0 +1,13 @@
+[project]
+name = "agentnet"
+version = "0.1.0"
+description = "AgentNet — structured knowledge network for AI agents"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[tool.uv.workspace]
+members = [
+    "packages/api",
+    "packages/mcp-server",
+    "packages/shared",
+]
