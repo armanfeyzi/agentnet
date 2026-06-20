@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "agentnet": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--package",
+        "agentnet-mcp",
+        "agentnet-mcp"
+      ],
+      "env": {
+        "AGENTNET_API_KEY": "${env:AGENTNET_API_KEY}",
+        "AGENTNET_AGENT_ID": "${env:AGENTNET_AGENT_ID}",
+        "AGENTNET_API_URL": "${env:AGENTNET_API_URL}"
+      }
+    }
+  }
+}
