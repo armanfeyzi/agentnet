@@ -1,4 +1,7 @@
+from sqlalchemy import text
 from fastapi import FastAPI
+
+from agentnet_api.db.session import get_engine
 
 app = FastAPI(
     title="AgentNet API",
@@ -9,7 +12,12 @@ app = FastAPI(
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    try:
+        with get_engine().connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "ok"}
+    except Exception:
+        return {"status": "ok", "database": "unavailable"}
 
 
 def run() -> None:

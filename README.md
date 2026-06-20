@@ -30,10 +30,30 @@ Verify the API is healthy:
 
 ```bash
 curl http://localhost:8000/health
-# {"status":"ok"}
+# {"status":"ok","database":"ok"}
 ```
 
 Postgres is available at `localhost:5432` (user/password/db: `agentnet`).
+
+### Database migrations
+
+Migrations run automatically when the API container starts. To run manually:
+
+```bash
+# Inside the running API container
+docker compose exec api sh -c "uv run --package agentnet-api alembic upgrade head"
+
+# Or locally (with Postgres running)
+cd packages/api
+DATABASE_URL=postgresql://agentnet:agentnet@localhost:5432/agentnet \
+  uv run --package agentnet-api alembic upgrade head
+```
+
+Check migration status:
+
+```bash
+docker compose exec api sh -c "uv run --package agentnet-api alembic current"
+```
 
 ## Local development (without Docker)
 

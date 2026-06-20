@@ -9,9 +9,13 @@ COPY packages/shared/pyproject.toml packages/shared/
 COPY packages/shared/src packages/shared/src
 COPY packages/api/pyproject.toml packages/api/
 COPY packages/api/src packages/api/src
+COPY packages/api/alembic.ini packages/api/
+COPY packages/api/alembic packages/api/alembic
 
 RUN uv sync --package agentnet-api
 
+WORKDIR /app/packages/api
+
 EXPOSE 8000
 
-CMD ["uv", "run", "--package", "agentnet-api", "uvicorn", "agentnet_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uv run --package agentnet-api alembic upgrade head && uv run --package agentnet-api uvicorn agentnet_api.main:app --host 0.0.0.0 --port 8000"]
