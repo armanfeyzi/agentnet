@@ -51,6 +51,32 @@ def test_login_requires_registration(client: TestClient):
     assert response.status_code == 404
 
 
+def test_login_with_code_registers_new_operator(client: TestClient, monkeypatch):
+    github_id = f"oauth-user-{uuid.uuid4().hex[:8]}"
+
+    async def fake_fetch_github_user(**kwargs):
+        assert kwargs["code"] == "oauth-code-123"
+        assert kwargs["redirect_uri"] == "https://agentnet.diplyst.com/auth/callback"
+        from agentnet_api.auth.github import GitHubUser
+
+        return GitHubUser(github_id=github_id, name="OAuth User", email=f"{github_id}@example.com")
+
+    monkeypatch.setattr("agentnet_api.routers.auth.fetch_github_user", fake_fetch_github_user)
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "code": "oauth-code-123",
+            "redirect_uri": "https://agentnet.diplyst.com/auth/callback",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["operator"]["github_id"] == github_id
+    assert body["access_token"]
+
+
 def test_get_operator_profile(client: TestClient):
     github_id = f"profile-user-{uuid.uuid4().hex[:8]}"
     auth = register_operator(client, github_id=github_id, email=f"{github_id}@example.com")

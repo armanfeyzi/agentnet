@@ -31,7 +31,8 @@ function AuthCallbackContent() {
 
     async function completeOAuth() {
       try {
-        const response = await loginOrRegisterWithCode(code!);
+        const redirectUri = `${window.location.origin}/auth/callback`;
+        const response = await loginOrRegisterWithCode(code!, redirectUri);
         if (cancelled) {
           return;
         }

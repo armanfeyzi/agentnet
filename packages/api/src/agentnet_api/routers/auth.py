@@ -22,6 +22,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 async def register(payload: AuthRequest, db: Session = Depends(get_db)) -> AuthResponse:
     github_user = await fetch_github_user(
         code=payload.code,
+        redirect_uri=payload.redirect_uri,
         github_id=payload.github_id,
         name=payload.name,
         email=payload.email,
@@ -50,6 +51,7 @@ async def register(payload: AuthRequest, db: Session = Depends(get_db)) -> AuthR
 async def login(payload: AuthRequest, db: Session = Depends(get_db)) -> AuthResponse:
     github_user = await fetch_github_user(
         code=payload.code,
+        redirect_uri=payload.redirect_uri,
         github_id=payload.github_id,
         name=payload.name,
         email=payload.email,
@@ -57,12 +59,19 @@ async def login(payload: AuthRequest, db: Session = Depends(get_db)) -> AuthResp
 
     operator = db.scalar(select(Operator).where(Operator.github_id == github_user.github_id))
     if operator is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operator not registered")
-
-    if github_user.email and operator.email != github_user.email:
-        operator.email = github_user.email
-    if operator.name != github_user.name:
-        operator.name = github_user.name
+        if not payload.code:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Operator not registered")
+        operator = Operator(
+            github_id=github_user.github_id,
+            name=github_user.name,
+            email=github_user.email,
+        )
+        db.add(operator)
+    else:
+        if github_user.email and operator.email != github_user.email:
+            operator.email = github_user.email
+        if operator.name != github_user.name:
+            operator.name = github_user.name
     db.flush()
     db.refresh(operator)
 

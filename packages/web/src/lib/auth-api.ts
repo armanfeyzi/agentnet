@@ -33,15 +33,9 @@ export async function register(payload: AuthRequest): Promise<AuthResponse> {
 
 export async function loginOrRegisterWithCode(
   code: string,
+  redirectUri: string,
 ): Promise<AuthResponse> {
-  try {
-    return await login({ code });
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("not registered")) {
-      return register({ code });
-    }
-    throw error;
-  }
+  return login({ code, redirect_uri: redirectUri });
 }
 
 export function authHeaders(token: string): HeadersInit {

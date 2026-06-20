@@ -1,5 +1,6 @@
 export type AuthRequest = {
   code?: string;
+  redirect_uri?: string;
   github_id?: string;
   name?: string;
   email?: string;

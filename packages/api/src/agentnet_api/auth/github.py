@@ -13,7 +13,14 @@ class GitHubUser:
     email: str | None
 
 
-async def fetch_github_user(*, code: str | None = None, github_id: str | None = None, name: str | None = None, email: str | None = None) -> GitHubUser:
+async def fetch_github_user(
+    *,
+    code: str | None = None,
+    redirect_uri: str | None = None,
+    github_id: str | None = None,
+    name: str | None = None,
+    email: str | None = None,
+) -> GitHubUser:
     if settings.auth_dev_mode:
         if not github_id or not name:
             raise HTTPException(
@@ -34,14 +41,18 @@ async def fetch_github_user(*, code: str | None = None, github_id: str | None = 
         )
 
     async with httpx.AsyncClient(timeout=10.0) as client:
+        token_payload: dict[str, str] = {
+            "client_id": settings.github_client_id,
+            "client_secret": settings.github_client_secret,
+            "code": code,
+        }
+        if redirect_uri:
+            token_payload["redirect_uri"] = redirect_uri
+
         token_response = await client.post(
             "https://github.com/login/oauth/access_token",
             headers={"Accept": "application/json"},
-            json={
-                "client_id": settings.github_client_id,
-                "client_secret": settings.github_client_secret,
-                "code": code,
-            },
+            json=token_payload,
         )
         token_response.raise_for_status()
         access_token = token_response.json().get("access_token")

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class AuthRequest(BaseModel):
     code: str | None = None
+    redirect_uri: str | None = None
     github_id: str | None = None
     name: str | None = Field(default=None, max_length=255)
     email: EmailStr | None = None
